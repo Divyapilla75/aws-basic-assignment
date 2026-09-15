@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Scalable web application infrastructure using Amazon ECS Fargate,
+  Application Load Balancer, Amazon RDS PostgreSQL, ECR and monitoring.
+
+Parameters:
+
+  EnvironmentName:
+    Type: String
+    Default: dev
+    Description: Environment name used for resource naming and tagging.
+
+  EcsCpu:
+    Type: String
+    Default: '256'
+    AllowedValues:
+      - '256'
+      - '512'
+      - '1024'
+    Description: ECS task CPU units.
+
+  EcsMemory:
+    Type: String
+    Default: '512'
+    AllowedValues:
+      - '512'
+      - '1024'
+      - '2048'
+    Description: ECS task memory in MiB.
+
+  DesiredTaskCount:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    MaxValue: 3
+    Description: Initial number of ECS tasks.
+
+  MaxTaskCount:
+    Type: Number
+    Default: 3
+    MinValue: 1
+    MaxValue: 10
+    Description: Maximum number of ECS tasks.
+
+  RdsInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    Description: RDS PostgreSQL instance class.
+
+  DBPassword:
+    Type: String
+    NoEcho: true
+
+  RdsBackupRetention:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    MaxValue: 35
+    Description: Automated backup retention period in days.
+
+Resources:
+
+  EcrRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      #RepositoryName: aws-scalable-web-app
+      RepositoryName: !Sub aws-scalable-web-app-${EnvironmentName}
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      Tags:
+        - Key: Project
+          Value: aws-scalable-web-app
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub aws-scalable-web-app-${EnvironmentName}
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Tags:
+        - Key: Project
+          Value: aws-scalable-web-app
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+Outputs:
+
+  EcrRepositoryUri:
+    Description: ECR repository URI
+    Value: !GetAtt EcrRepository.RepositoryUri
+
+  EcsClusterName:
+    Description: ECS cluster name
+    Value: !Ref EcsCluster
